@@ -1,13 +1,17 @@
-require('dotenv').config();
+// Solo cargar dotenv en desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db.js');
 const usuariosRoutes = require('./usuarios.routes.js');
 
-
-
 const app = express();
-const desiredPort = process.env.PORT ?? 1234;
+
+// Railway SIEMPRE usa este puerto
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -18,14 +22,12 @@ app.use('/uploads', express.static('uploads'));
 // Rutas
 usuariosRoutes(app, pool);
 
+// Ruta de prueba
 app.get('/', (req, res) => {
-    res.send('Servidor Express funcionando');
+  res.send('Servidor Express funcionando en Railway 🚀');
 });
 
-console.log('MAIL_USER:', process.env.MAIL_USER);
-console.log('MAIL_PASS:', process.env.MAIL_PASS);
-
-app.listen(desiredPort, () => {
-    console.log(`API escuchando en http://localhost:${desiredPort}`);
+app.listen(PORT, () => {
+  console.log(`API escuchando en puerto ${PORT}`);
 });
 
