@@ -1,0 +1,631 @@
+require('dotenv').config();
+const bcrypt = require('bcrypt');
+const upload = require('./config/multer'); 
+
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
+
+
+
+
+function validarRUT(rut) {
+    if (!rut) return false;
+
+    // Quitar puntos y guión
+    rut = rut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+
+    if (rut.length < 2) return false;
+
+    const cuerpo = rut.slice(0, -1);
+    const dv = rut.slice(-1);
+
+    if (!/^\d+$/.test(cuerpo)) return false;
+
+    let suma = 0;
+    let multiplicador = 2;
+
+    for (let i = cuerpo.length - 1; i >= 0; i--) {
+        suma += parseInt(cuerpo[i]) * multiplicador;
+        multiplicador = multiplicador < 7 ? multiplicador + 1 : 2;
+    }
+
+    const resto = suma % 11;
+    const dvEsperado = 11 - resto;
+
+    let dvCalculado;
+    if (dvEsperado === 11) dvCalculado = '0';
+    else if (dvEsperado === 10) dvCalculado = 'K';
+    else dvCalculado = dvEsperado.toString();
+
+    return dv === dvCalculado;
+}
+
+
+module.exports = function(app, pool) {
+
+    // GET todos los usuarios
+    app.get('/usuarios', async (req, res) => {
+        try {
+            const [rows] = await pool.query('SELECT * FROM Usuarios');
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Error consultando usuarios' });
+        }
+    });
+
+    // POST crear usuario con contraseña encriptada
+   app.post('/usuarios', async (req, res) => {
+    const {
+        Codigo_Usuario,
+        Contraseña,
+        RUT,
+        Correo_Electronico,
+        Nombre_y_Apellido,
+        Tipo_de_Usuario
+    } = req.body;
+
+    // 🔹 Validación de campos
+    if (!Codigo_Usuario || !Contraseña || !RUT || !Correo_Electronico || !Nombre_y_Apellido || !Tipo_de_Usuario) {
+        return res.status(400).json({ error: 'Faltan datos' });
+    }
+
+    // 🔹 VALIDAR RUT
+    if (!validarRUT(RUT)) {
+        return res.status(400).json({ error: 'RUT inválido' });
+    }
+
+    try {
+        const hash = await bcrypt.hash(Contraseña, 10);
+
+        // 🔹 Insertar en tabla Usuarios
+        await pool.query(
+            `INSERT INTO Usuarios 
+            (Codigo_Usuario, Contrasena, RUT, Correo_Electronico, Nombre_y_Apellido, Tipo_de_Usuario)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+            [Codigo_Usuario, hash, RUT, Correo_Electronico, Nombre_y_Apellido, Tipo_de_Usuario]
+        );
+
+        // 🔹 Si es Administrador, insertar en encargados
+        if (Tipo_de_Usuario === "Administrador") {
+            await pool.query(
+                `INSERT INTO encargados (Nombre, RUT, Correo)
+                VALUES (?, ?, ?)`,
+                [Nombre_y_Apellido, RUT, Correo_Electronico]
+            );
+        }
+
+        res.json({
+            ok: true,
+            mensaje: 'Usuario creado correctamente'
+        });
+
+    } catch (error) {
+        console.error("Error creando usuario:", error);
+        res.status(500).json({
+            error: 'Error creando usuario'
+        });
+    }
+});
+
+
+
+    // POST historial
+    app.post('/historial', async (req, res) => {
+        const { Codigo_Usuario, Accion } = req.body;
+        if (!Codigo_Usuario || !Accion) {
+            return res.status(400).json({ error: 'Faltan datos' });
+        }
+
+        try {
+            const hora = new Date();
+            await pool.query(
+                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+                 VALUES (?, ?, ?)`,
+                [Codigo_Usuario, Accion, hora]
+            );
+            res.json({ ok: true, mensaje: 'Historial registrado correctamente' });
+        } catch (error) {
+            res.status(500).json({ error: 'Error registrando historial' });
+        }
+    });
+
+    // DELETE usuario por RUT
+app.delete('/usuarios/rut/:rut', async (req, res) => {
+    const { rut } = req.params;
+
+    try {
+        // Obtener el Codigo_Usuario correspondiente al RUT
+        const [usuarios] = await pool.query('SELECT Codigo_Usuario FROM Usuarios WHERE RUT = ?', [rut]);
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const codigoUsuario = usuarios[0].Codigo_Usuario;
+
+        // Eliminar historial asociado
+        await pool.query('DELETE FROM historial_de_acciones WHERE Codigo_Usuario = ?', [codigoUsuario]);
+
+        // Luego eliminar usuario
+        const [result] = await pool.query('DELETE FROM usuarios WHERE RUT = ?', [rut]);
+
+        res.json({ ok: true, mensaje: 'Usuario eliminado correctamente' });
+    } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        res.status(500).json({ error: 'Error eliminando usuario' });
+    }
+});
+
+
+// PUT usuario por RUT
+app.put('/usuarios/rut/:rut', async (req, res) => {
+    const { rut } = req.params;
+    const { Contraseña, Nombre_y_Apellido, Tipo_de_Usuario, Correo_Electronico } = req.body;
+
+    if (!Contraseña && !Nombre_y_Apellido && !Tipo_de_Usuario && !Correo_Electronico) {
+        return res.status(400).json({ error: 'No hay datos para actualizar' });
+    }
+
+    try {
+        const [rows] = await pool.query('SELECT Codigo_Usuario FROM Usuarios WHERE RUT = ?', [rut]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        const codigoUsuario = rows[0].Codigo_Usuario;
+
+        let hash = null;
+        if (Contraseña) {
+            const bcrypt = require('bcrypt');
+            hash = await bcrypt.hash(Contraseña, 10);
+        }
+
+        // 🔹 Actualizar solo los campos que llegan
+        const [result] = await pool.query(
+            `UPDATE Usuarios
+             SET Contrasena = COALESCE(?, Contrasena),
+                 Nombre_y_Apellido = COALESCE(?, Nombre_y_Apellido),
+                 Tipo_de_Usuario = COALESCE(?, Tipo_de_Usuario),
+                 Correo_Electronico = COALESCE(?, Correo_Electronico)
+             WHERE RUT = ?`,
+            [hash, Nombre_y_Apellido, Tipo_de_Usuario, Correo_Electronico, rut]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const hora = new Date();
+        await pool.query(
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+             VALUES (?, ?, ?)`,
+            [codigoUsuario, `Se actualizó el usuario con RUT ${rut}`, hora]
+        );
+
+        res.json({ ok: true, mensaje: 'Usuario actualizado correctamente' });
+
+    } catch (error) {
+        console.error('Error actualizando usuario:', error);
+        res.status(500).json({ error: 'Error actualizando usuario', detalles: error });
+    }
+});
+
+
+// POST login
+app.post('/login', async (req, res) => {
+    const { RUT, Contraseña } = req.body;
+
+    if (!RUT || !Contraseña) {
+        return res.status(400).json({ error: 'RUT y contraseña obligatorios' });
+    }
+
+    // 🔹 VALIDAR RUT (antes de consultar BD)
+    if (!validarRUT(RUT)) {
+        return res.status(400).json({ error: 'RUT inválido' });
+    }
+
+    try {
+        const [rows] = await pool.query(
+            'SELECT Codigo_Usuario, Contrasena, Tipo_de_Usuario FROM Usuarios WHERE RUT = ?',
+            [RUT]
+        );
+
+        // 🔹 RUT válido pero no existe
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no existe' });
+        }
+
+        const usuario = rows[0];
+
+        // 🔹 Validar contraseña
+        const passwordOK = await bcrypt.compare(Contraseña, usuario.Contrasena);
+        if (!passwordOK) {
+            return res.status(401).json({ error: 'Contraseña incorrecta' });
+        }
+
+        // 🔹 Registrar login
+        await pool.query(
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+             VALUES (?, ?, NOW())`,
+            [usuario.Codigo_Usuario, 'Inicio sesión']
+        );
+
+        res.json({
+            ok: true,
+            tipo: usuario.Tipo_de_Usuario,
+            codigo: usuario.Codigo_Usuario
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error en el login' });
+    }
+});
+
+
+
+
+app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
+    const { Codigo_Usuario, Titulo, Categoria, Detalles } = req.body;
+
+    if (!Codigo_Usuario || !Titulo) {
+        return res.status(400).json({ error: 'Codigo_Usuario y Titulo son obligatorios' });
+    }
+
+    try {
+        // 1️⃣ Insertar el reporte
+        const [resultado] = await pool.query(
+            `INSERT INTO lista_de_reportes 
+             (Codigo_Usuario, Titulo, Categoria, Detalles)
+             VALUES (?, ?, ?, ?)`,
+            [Codigo_Usuario, Titulo, Categoria || null, Detalles || null]
+        );
+
+        const id_reporte = resultado.insertId;
+
+        // 2️⃣ Guardar imágenes (NUEVO)
+        if (req.files && req.files.length > 0) {
+            for (const img of req.files) {
+                await pool.query(
+                    `INSERT INTO Reporte_Imagenes (ID_Reporte, Ruta_Imagen)
+                     VALUES (?, ?)`,
+                    [id_reporte, img.path]
+                );
+            }
+        }
+
+        // 3️⃣ Obtener el RUT del usuario
+        const [usuarioRows] = await pool.query(
+            `SELECT RUT FROM Usuarios WHERE Codigo_Usuario = ?`,
+            [Codigo_Usuario]
+        );
+
+        const rut_usuario = usuarioRows.length > 0 ? usuarioRows[0].RUT : 'Desconocido';
+
+        // 4️⃣ Historial
+        const accion = `Reporte agregado por el usuario. RUT: ${rut_usuario}`;
+        await pool.query(
+            `INSERT INTO historial_de_acciones (Codigo_Usuario, Accion, Hora_Accion)
+             VALUES (?, ?, NOW())`,
+            [Codigo_Usuario, accion]
+        );
+
+        res.json({
+            ok: true,
+            id_reporte,
+            mensaje: 'Reporte agregado correctamente'
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al agregar el reporte' });
+    }
+});
+
+
+// GET /reportes
+app.get('/reportes', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+           SELECT 
+    r.ID_Reporte,
+    r.Codigo_Usuario,
+    r.Titulo,
+    r.Categoria,
+    r.Detalles,
+    r.Fecha,
+    r.Estado,
+    e.ID_Encargado,
+    e.Nombre AS Encargado,
+    i.Ruta_Imagen
+FROM Lista_de_Reportes r
+LEFT JOIN Reporte_Encargado re
+    ON r.ID_Reporte = re.ID_Reporte
+LEFT JOIN Encargados e
+    ON re.ID_Encargado = e.ID_Encargado
+LEFT JOIN Reporte_Imagenes i 
+    ON r.ID_Reporte = i.ID_Reporte
+ORDER BY r.Fecha DESC
+        `);
+
+        // 🔁 Agrupar imágenes por reporte
+        const reportesMap = {};
+
+        for (const row of rows) {
+            if (!reportesMap[row.ID_Reporte]) {
+                reportesMap[row.ID_Reporte] = {
+                    ID_Reporte: row.ID_Reporte,
+                    Codigo_Usuario: row.Codigo_Usuario,
+                    Titulo: row.Titulo,
+                    Categoria: row.Categoria,
+                    Detalles: row.Detalles,
+                    Fecha: row.Fecha,
+                    Estado: row.Estado,
+                    Encargado: row.Encargado,
+                    imagenes: []
+                };
+            }
+
+            if (row.Ruta_Imagen) {
+                reportesMap[row.ID_Reporte].imagenes.push(row.Ruta_Imagen);
+            }
+        }
+
+        res.json({
+            ok: true,
+            reportes: Object.values(reportesMap)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            error: 'Error al obtener los reportes'
+        });
+    }
+});
+
+// trae los usuarios a perfil
+app.get('/usuario/:codigo', async (req, res) => {
+    const codigoUsuario = req.params.codigo;
+
+    try {
+        const [rows] = await pool.query(`
+            SELECT Codigo_Usuario, RUT, Correo_Electronico, Nombre_y_Apellido, Tipo_de_Usuario
+            FROM Usuarios
+            WHERE Codigo_Usuario = ?
+            LIMIT 1
+        `, [codigoUsuario]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+        }
+
+        res.json({ ok: true, usuario: rows[0] });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, error: 'Error al obtener datos del usuario' });
+    }
+});
+
+
+// Asignar encargado a un reporte
+app.post('/reportes/:id/asignar', async (req, res) => {
+    const { id } = req.params; // ID del reporte
+    const { ID_Encargado } = req.body; // ID del encargado
+
+    if (!ID_Encargado) return res.status(400).json({ error: 'Debe enviar el ID del encargado' });
+
+    try {
+        // Verificar si ya está asignado
+        const [existe] = await pool.query(
+            `SELECT * FROM Reporte_Encargado WHERE ID_Reporte = ?`,
+            [id]
+        );
+        if (existe.length > 0) {
+            return res.status(400).json({ error: 'Reporte ya tiene un encargado asignado' });
+        }
+
+        // Obtener el nombre del encargado
+        const [encargadoRows] = await pool.query(
+            `SELECT Nombre FROM Encargados WHERE ID_Encargado = ?`,
+            [ID_Encargado]
+        );
+
+        if (encargadoRows.length === 0) {
+            return res.status(400).json({ error: 'Encargado no encontrado' });
+        }
+
+        const nombreEncargado = encargadoRows[0].Nombre;
+
+        // Insertar en la tabla Reporte_Encargado
+        await pool.query(
+            `INSERT INTO Reporte_Encargado (ID_Reporte, ID_Encargado) VALUES (?, ?)`,
+            [id, ID_Encargado]
+        );
+
+        // Actualizar estado y nombre del encargado en Lista_de_Reportes
+        await pool.query(
+            `UPDATE Lista_de_Reportes SET Estado = 'Asignado', Encargado = ? WHERE ID_Reporte = ?`,
+            [nombreEncargado, id]
+        );
+
+        res.json({ ok: true, mensaje: 'Encargado asignado correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error asignando encargado', detalles: error });
+    }
+});
+
+
+// Cerrar (eliminar) reporte
+app.delete('/reportes/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [result] = await pool.query(
+            `DELETE FROM Lista_de_Reportes WHERE ID_Reporte = ?`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Reporte no encontrado' });
+        }
+
+        res.json({ ok: true, mensaje: 'Reporte cerrado/eliminado correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error cerrando reporte', detalles: error });
+    }
+});
+
+// Obtener todos los encargados
+app.get('/encargados', async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT ID_Encargado, Nombre FROM encargados`
+        );
+        res.json({ encargados: rows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error obteniendo encargados' });
+    }
+});
+
+/*cambiar contraseña*/
+/* recuperar contraseña usando Gmail con contraseña de aplicación */
+const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
+
+module.exports = (app, pool) => {
+  app.post('/usuarios/recuperar-password', async (req, res) => {
+    const { correo } = req.body;
+    if (!correo) return res.status(400).json({ mensaje: 'Correo requerido' });
+
+    try {
+      // Buscar usuario por correo
+      const [rows] = await pool.query(
+        'SELECT Codigo_Usuario FROM Usuarios WHERE Correo_Electronico = ?',
+        [correo]
+      );
+
+      if (rows.length === 0) {
+        // No mostrar información sensible
+        return res.json({ mensaje: 'Si el correo existe, recibirás instrucciones' });
+      }
+
+      const codigo = rows[0].Codigo_Usuario;
+      const token = uuidv4();
+      const expira = new Date(Date.now() + 15 * 60000); // expira en 15 minutos
+
+      // Marcar anteriores tokens como usados (opcional)
+      await pool.query(
+        'UPDATE Recuperacion_Password SET usado = 1 WHERE Codigo_Usuario = ?',
+        [codigo]
+      );
+
+      // Insertar nuevo token
+      await pool.query(
+        'INSERT INTO Recuperacion_Password (Codigo_Usuario, token, expira) VALUES (?, ?, ?)',
+        [codigo, token, expira]
+      );
+
+      // Configurar transporter con contraseña de aplicación
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.MAIL_USER,       // tu correo Gmail
+          pass: process.env.MAIL_PASS        // contraseña de aplicación de 16 caracteres
+        }
+      });
+
+      const link = `http://localhost/reset_password.php?token=${token}`;
+
+      // Enviar correo
+      await transporter.sendMail({
+        from: `"Soporte" <${process.env.MAIL_USER}>`,
+        to: correo,
+        subject: 'Recuperación de contraseña',
+        html: `<p>Haz clic para cambiar tu contraseña:</p>
+               <a href="${link}">${link}</a>`
+      });
+
+      res.json({ mensaje: 'Si el correo existe, recibirás instrucciones' });
+    } catch (error) {
+      console.error('Error recuperación:', error);
+      res.status(500).json({ mensaje: 'Error interno del servidor' });
+    }
+  });
+};
+
+
+
+
+/*actualizar contraseña*/ 
+
+const bcrypt = require('bcrypt');
+
+module.exports = (app, pool) => {
+    app.post('/usuarios/reset-password', async (req, res) => {
+        const { token, password } = req.body;
+        if (!token || !password) return res.status(400).json({ mensaje: 'Datos incompletos' });
+
+        try {
+            const [rows] = await pool.query(
+                'SELECT Codigo_Usuario, expira, usado FROM Recuperacion_Password WHERE token = ?',
+                [token]
+            );
+
+            if (rows.length === 0) return res.status(400).json({ mensaje: 'Token inválido' });
+            const { Codigo_Usuario, expira, usado } = rows[0];
+
+            if (usado) return res.status(400).json({ mensaje: 'El token ya fue usado' });
+            if (new Date(expira) < new Date()) return res.status(400).json({ mensaje: 'Token expirado' });
+
+            const hash = await bcrypt.hash(password, 10);
+
+            await pool.query(
+                'UPDATE Usuarios SET Contrasena = ? WHERE Codigo_Usuario = ?',
+                [hash, Codigo_Usuario]
+            );
+
+            await pool.query(
+                'UPDATE Recuperacion_Password SET usado = 1 WHERE token = ?',
+                [token]
+            );
+
+            res.json({ mensaje: 'Contraseña actualizada correctamente' });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ mensaje: 'Error interno del servidor' });
+        }
+    });
+};
+
+app.post('/usuarios/activar-2fa', async (req, res) => {
+    const { RUT } = req.body;  // Recibe el usuario
+
+    // Buscar usuario en la BD
+    const [rows] = await pool.query('SELECT Codigo_Usuario FROM Usuarios WHERE RUT = ?', [RUT]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Generar secreto para Google Authenticator
+    const secret = speakeasy.generateSecret({ length: 20, name: "SisVaQR" });
+
+    // Guardar secret.base32 en la BD del usuario
+    await pool.query('UPDATE Usuarios SET secret_2fa = ? WHERE RUT = ?', [secret.base32, RUT]);
+
+    // Generar QR
+    qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
+        if (err) return res.status(500).json({ error: 'Error generando QR' });
+        res.json({ qr: data_url, secret: secret.base32 });
+    });
+});
+
+
+    // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
+};
+
