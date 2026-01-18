@@ -530,7 +530,7 @@ app.post('/reportes/:id/asignar', async (req, res) => {
 
         // Actualizar estado y nombre del encargado en Lista_de_Reportes
         await pool.query(
-            `UPDATE Lista_de_Reportes SET Estado = 'Asignado', Encargado = ? WHERE ID_Reporte = ?`,
+            `UPDATE Lista_de_Reportes SET Estado = 'Asignado' WHERE ID_Reporte = ?`,
             [nombreEncargado, id]
         );
 
