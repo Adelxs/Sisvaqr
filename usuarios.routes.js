@@ -319,7 +319,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error en /reportes:', error);
         res.status(500).json({ error: 'Error al agregar el reporte', details: error.message });
     }
 });
