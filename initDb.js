@@ -140,6 +140,12 @@ try {
   console.log('No se pudo modificar el campo Accion (quizá ya es TEXT):', err.message);
 }
 
+try {
+  await pool.query(`RENAME TABLE encargados TO Encargados;`);
+  console.log('tabla cambiada correctamente');
+} catch (err) {
+  console.log('No se pudo modificar el campo Accion (quizá ya es TEXT):', err.message);
+}
 
     /* ================= INSERTS ================= */
     const inserts = [
