@@ -317,7 +317,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         console.log('RUT del usuario:', rut_usuario);
 
         // 4️⃣ Insertar historial
-        const accion = `Reporte agregado por el usuario. RUT: ${rut_usuario}`;
+        const accion = `Reporte agregado RUT: ${rut_usuario}`;
         console.log('Insertando historial:', accion);
         await pool.query(
             `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
