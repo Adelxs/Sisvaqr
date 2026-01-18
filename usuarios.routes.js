@@ -509,7 +509,7 @@ app.post('/reportes/:id/asignar', async (req, res) => {
 
         // Obtener el nombre del encargado
         const [encargadoRows] = await pool.query(
-            `SELECT Nombre FROM Encargados WHERE ID_Encargado = ?`,
+            `SELECT Nombre FROM encargados WHERE ID_Encargado = ?`,
             [ID_Encargado]
         );
 
