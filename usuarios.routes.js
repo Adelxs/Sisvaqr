@@ -710,3 +710,21 @@ app.post('/usuarios/activar-2fa', async (req, res) => {
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 };
 
+
+app.get('/debug/uploads', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const dir = path.join(__dirname, 'uploads', 'reportes');
+
+  if (!fs.existsSync(dir)) {
+    return res.json({ existe: false, dir });
+  }
+
+  res.json({
+    existe: true,
+    archivos: fs.readdirSync(dir)
+  });
+});
+
+
