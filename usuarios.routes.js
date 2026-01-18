@@ -706,11 +706,6 @@ app.post('/usuarios/activar-2fa', async (req, res) => {
     });
 });
 
-
-    // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
-};
-
-
 app.get('/debug/uploads', (req, res) => {
   const fs = require('fs');
   const path = require('path');
@@ -726,5 +721,11 @@ app.get('/debug/uploads', (req, res) => {
     archivos: fs.readdirSync(dir)
   });
 });
+
+    // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
+};
+
+
+
 
 
