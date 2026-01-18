@@ -445,8 +445,9 @@ ORDER BY r.Fecha DESC
                 };
             }
 
-            if (row.Ruta_Imagen) {
-    const rutaPublica = row.Ruta_Imagen.replace('/app/', '');
+         if (row.Ruta_Imagen) {
+    // Asegúrate de que la URL tenga la barra inicial
+    const rutaPublica = `https://sisvaqr-production.up.railway.app/${row.Ruta_Imagen.replace(/^\/+/, '')}`;
     reportesMap[row.ID_Reporte].imagenes.push(rutaPublica);
 }
 
@@ -723,6 +724,7 @@ app.get('/debug/uploads', (req, res) => {
     archivos: fs.readdirSync(dir)
   });
 });
+
 
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 };
