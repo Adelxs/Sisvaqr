@@ -265,8 +265,7 @@ app.post('/login', async (req, res) => {
 });
 
 
-/*agregar reportes*/ 
-
+/* agregar reportes */
 app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
     const { Codigo_Usuario, Titulo, Categoria, Detalles } = req.body;
 
@@ -275,6 +274,9 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
     }
 
     try {
+        console.log('=== NUEVO REPORTE ===');
+        console.log('Datos recibidos:', { Codigo_Usuario, Titulo, Categoria, Detalles });
+
         // 1️⃣ Insertar el reporte
         const [resultado] = await pool.query(
             `INSERT INTO Lista_de_Reportes 
@@ -284,16 +286,24 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         );
 
         const id_reporte = resultado.insertId;
+        console.log('Reporte insertado con ID:', id_reporte);
 
-        // 2️⃣ Guardar imágenes (NUEVO)
+        // 2️⃣ Guardar imágenes (si existen)
         if (req.files && req.files.length > 0) {
+            console.log('Archivos a guardar:', req.files.map(f => f.path));
             for (const img of req.files) {
-                await pool.query(
-                    `INSERT INTO Reporte_Imagenes (ID_Reporte, Ruta_Imagen)
-                     VALUES (?, ?)`,
-                    [id_reporte, img.path]
-                );
+                try {
+                    await pool.query(
+                        `INSERT INTO Reporte_Imagenes (ID_Reporte, Ruta_Imagen)
+                         VALUES (?, ?)`,
+                        [id_reporte, img.path]
+                    );
+                } catch (imgError) {
+                    console.error('Error insertando imagen:', img.path, imgError.message);
+                }
             }
+        } else {
+            console.log('No se recibieron imágenes');
         }
 
         // 3️⃣ Obtener el RUT del usuario
@@ -303,9 +313,11 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         );
 
         const rut_usuario = usuarioRows.length > 0 ? usuarioRows[0].RUT : 'Desconocido';
+        console.log('RUT del usuario:', rut_usuario);
 
-        // 4️⃣ Historial
+        // 4️⃣ Insertar historial
         const accion = `Reporte agregado por el usuario. RUT: ${rut_usuario}`;
+        console.log('Insertando historial:', accion);
         await pool.query(
             `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
              VALUES (?, ?, NOW())`,
@@ -322,9 +334,11 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         console.error('Error en /reportes:', error);
         res.status(500).json({ 
             error: 'Error al agregar el reporte', 
-            details: error.message });
+            details: error.message // <-- muestra el error real en frontend
+        });
     }
 });
+
 
 
 // GET /reportes
