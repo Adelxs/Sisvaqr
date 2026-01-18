@@ -446,8 +446,10 @@ ORDER BY r.Fecha DESC
             }
 
             if (row.Ruta_Imagen) {
-                reportesMap[row.ID_Reporte].imagenes.push(row.Ruta_Imagen);
-            }
+    const rutaPublica = row.Ruta_Imagen.replace('/app/', '');
+    reportesMap[row.ID_Reporte].imagenes.push(rutaPublica);
+}
+
         }
 
         res.json({
