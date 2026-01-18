@@ -749,6 +749,13 @@ app.get('/me', async (req, res) => {
     }
 });
 
+app.get('/usuario/:rut', async (req, res) => {
+    const rut = req.params.rut;
+    const [rows] = await pool.query('SELECT * FROM usuarios WHERE RUT = ?', [rut]);
+    if (rows.length === 0) return res.json({ ok: false, error: 'Usuario no encontrado' });
+    res.json({ ok: true, usuario: rows[0] });
+});
+
 
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 };
