@@ -445,9 +445,9 @@ ORDER BY r.Fecha DESC
                 };
             }
 
-         if (row.Ruta_Imagen) {
-    // Asegúrate de que la URL tenga la barra inicial
-    const rutaPublica = `https://sisvaqr-production.up.railway.app/${row.Ruta_Imagen.replace(/^\/+/, '')}`;
+       if (row.Ruta_Imagen) {
+    // Quitar "/app/" si está al inicio
+    const rutaPublica = `https://sisvaqr-production.up.railway.app/${row.Ruta_Imagen.replace(/^\/?app\//, '')}`;
     reportesMap[row.ID_Reporte].imagenes.push(rutaPublica);
 }
 
