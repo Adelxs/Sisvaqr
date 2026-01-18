@@ -265,7 +265,7 @@ app.post('/login', async (req, res) => {
 });
 
 
-
+/*agregar reportes*/ 
 
 app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
     const { Codigo_Usuario, Titulo, Categoria, Detalles } = req.body;
@@ -277,7 +277,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
     try {
         // 1️⃣ Insertar el reporte
         const [resultado] = await pool.query(
-            `INSERT INTO lista_de_reportes 
+            `INSERT INTO Lista_de_Reportes 
              (Codigo_Usuario, Titulo, Categoria, Detalles)
              VALUES (?, ?, ?, ?)`,
             [Codigo_Usuario, Titulo, Categoria || null, Detalles || null]
