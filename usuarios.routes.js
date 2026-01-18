@@ -421,7 +421,7 @@ app.get('/reportes', async (req, res) => {
 FROM Lista_de_Reportes r
 LEFT JOIN Reporte_Encargado re
     ON r.ID_Reporte = re.ID_Reporte
-LEFT JOIN Encargados e
+LEFT JOIN encargados e
     ON re.ID_Encargado = e.ID_Encargado
 LEFT JOIN Reporte_Imagenes i 
     ON r.ID_Reporte = i.ID_Reporte
