@@ -43,7 +43,7 @@ async function init() {
       `CREATE TABLE IF NOT EXISTS Historial_de_Acciones (
         ID_Accion INT AUTO_INCREMENT NOT NULL,
         Codigo_Usuario VARCHAR(10) NOT NULL,
-        Accion VARCHAR(255),
+        Accion TEXT,
         Hora_Accion DATETIME,
         PRIMARY KEY (ID_Accion),
         FOREIGN KEY (Codigo_Usuario) REFERENCES Usuarios(Codigo_Usuario)
@@ -131,6 +131,15 @@ async function init() {
       console.log('Tabla ejecutada o ya existía');
 
     }
+
+    // Después de crear todas las tablas
+try {
+  await pool.query(`ALTER TABLE Historial_de_Acciones MODIFY Accion TEXT;`);
+  console.log('Campo Accion actualizado a TEXT correctamente');
+} catch (err) {
+  console.log('No se pudo modificar el campo Accion (quizá ya es TEXT):', err.message);
+}
+
 
     /* ================= INSERTS ================= */
     const inserts = [
