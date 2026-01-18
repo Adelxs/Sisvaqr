@@ -285,6 +285,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
             [Codigo_Usuario, Titulo, Categoria || null, Detalles || null]
         );
 
+
         const id_reporte = resultado.insertId;
         console.log('Reporte insertado con ID:', id_reporte);
 
@@ -342,7 +343,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
 
 
 // GET /reportes
-app.get('/reportes', async (req, res) => {
+/*app.get('/reportes', async (req, res) => {
     try {
         const [rows] = await pool.query(`
            SELECT 
@@ -401,7 +402,68 @@ ORDER BY r.Fecha DESC
             error: 'Error al obtener los reportes'
         });
     }
+});*/
+
+app.get('/reportes', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+           SELECT 
+    r.ID_Reporte,
+    r.Codigo_Usuario,
+    r.Titulo,
+    r.Categoria,
+    r.Detalles,
+    r.Fecha,
+    r.Estado,
+    e.ID_Encargado,
+    e.Nombre AS Encargado,
+    i.Ruta_Imagen
+FROM Lista_de_Reportes r
+LEFT JOIN Reporte_Encargado re
+    ON r.ID_Reporte = re.ID_Reporte
+LEFT JOIN Encargados e
+    ON re.ID_Encargado = e.ID_Encargado
+LEFT JOIN Reporte_Imagenes i 
+    ON r.ID_Reporte = i.ID_Reporte
+ORDER BY r.Fecha DESC
+        `);
+
+        const reportesMap = {};
+
+        for (const row of rows) {
+            if (!reportesMap[row.ID_Reporte]) {
+                reportesMap[row.ID_Reporte] = {
+                    ID_Reporte: row.ID_Reporte,
+                    Codigo_Usuario: row.Codigo_Usuario,
+                    Titulo: row.Titulo,
+                    Categoria: row.Categoria,
+                    Detalles: row.Detalles,
+                    Fecha: row.Fecha,
+                    Estado: row.Estado,
+                    Encargado: row.Encargado,
+                    imagenes: []
+                };
+            }
+
+            if (row.Ruta_Imagen) {
+                reportesMap[row.ID_Reporte].imagenes.push(row.Ruta_Imagen);
+            }
+        }
+
+        res.json({
+            ok: true,
+            reportes: Object.values(reportesMap)
+        });
+
+    } catch (error) {
+        console.error("Error real en MySQL:", error);
+        res.status(500).json({
+            ok: false,
+            error: 'Error al obtener los reportes'
+        });
+    }
 });
+
 
 // trae los usuarios a perfil
 app.get('/usuario/:codigo', async (req, res) => {
