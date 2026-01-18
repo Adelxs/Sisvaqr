@@ -201,7 +201,7 @@ app.put('/usuarios/rut/:rut', async (req, res) => {
         await pool.query(
             `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
              VALUES (?, ?, ?)`,
-            [codigoUsuario, `Se actualizó el usuario con RUT ${rut}`, hora]
+            [codigoUsuario, `Se actualizó el RUT ${rut}`, hora]
         );
 
         res.json({ ok: true, mensaje: 'Usuario actualizado correctamente' });
