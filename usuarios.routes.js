@@ -150,7 +150,7 @@ app.delete('/usuarios/rut/:rut', async (req, res) => {
         await pool.query('DELETE FROM Historial_de_Acciones WHERE Codigo_Usuario = ?', [codigoUsuario]);
 
         // Luego eliminar usuario
-        const [result] = await pool.query('DELETE FROM usuarios WHERE RUT = ?', [rut]);
+        const [result] = await pool.query('DELETE FROM Usuarios WHERE RUT = ?', [rut]);
 
         res.json({ ok: true, mensaje: 'Usuario eliminado correctamente' });
     } catch (error) {
