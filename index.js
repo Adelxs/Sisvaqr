@@ -7,7 +7,10 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db.js');
 const usuariosRoutes = require('./usuarios.routes.js');
+const fs = require('fs');
 const path = require('path');
+
+const uploadDir = path.join(__dirname, 'uploads', 'reportes');
 
 const app = express();
 
@@ -16,6 +19,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Servir imágenes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
