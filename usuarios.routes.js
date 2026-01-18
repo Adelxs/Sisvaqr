@@ -147,7 +147,7 @@ app.delete('/usuarios/rut/:rut', async (req, res) => {
         const codigoUsuario = usuarios[0].Codigo_Usuario;
 
         // Eliminar historial asociado
-        await pool.query('DELETE FROM historial_de_acciones WHERE Codigo_Usuario = ?', [codigoUsuario]);
+        await pool.query('DELETE FROM Historial_de_Acciones WHERE Codigo_Usuario = ?', [codigoUsuario]);
 
         // Luego eliminar usuario
         const [result] = await pool.query('DELETE FROM usuarios WHERE RUT = ?', [rut]);
