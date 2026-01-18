@@ -445,10 +445,10 @@ ORDER BY r.Fecha DESC
                 };
             }
 
-           if (row.Ruta_Imagen) {
-        const rutaPublica = `https://sisvaqr-production.up.railway.app${row.Ruta_Imagen.replace('/app', '')}`;
-        reportesMap[row.ID_Reporte].imagenes.push(rutaPublica);
-    }
+            if (row.Ruta_Imagen) {
+    const rutaPublica = row.Ruta_Imagen.replace('/app/', '');
+    reportesMap[row.ID_Reporte].imagenes.push(rutaPublica);
+}
 
         }
 
