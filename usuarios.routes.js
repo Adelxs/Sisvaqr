@@ -725,6 +725,30 @@ app.get('/debug/uploads', (req, res) => {
   });
 });
 
+// Suponiendo que ya tienes un login y guardas el código o RUT del usuario
+app.get('/me', async (req, res) => {
+    const { rut } = req.query; // o desde un token en headers
+
+    if (!rut) return res.status(400).json({ ok: false, error: "RUT requerido" });
+
+    try {
+        const [rows] = await pool.query(
+            `SELECT Codigo_Usuario, RUT, Nombre_y_Apellido, Tipo_de_Usuario 
+             FROM Usuarios 
+             WHERE RUT = ?`,
+            [rut]
+        );
+
+        if (rows.length === 0) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+        res.json({ ok: true, usuario: rows[0] });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: "Error en servidor" });
+    }
+});
+
 
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 };
