@@ -43,7 +43,7 @@ async function init() {
       `CREATE TABLE IF NOT EXISTS Historial_de_Acciones (
         ID_Accion INT AUTO_INCREMENT NOT NULL,
         Codigo_Usuario VARCHAR(10) NOT NULL,
-        Accion VARCHAR(30),
+        Accion VARCHAR(255),
         Hora_Accion DATETIME,
         PRIMARY KEY (ID_Accion),
         FOREIGN KEY (Codigo_Usuario) REFERENCES Usuarios(Codigo_Usuario)
