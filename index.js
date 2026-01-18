@@ -9,20 +9,17 @@ const pool = require('./db.js');
 const usuariosRoutes = require('./usuarios.routes.js');
 const fs = require('fs');
 const path = require('path');
-
-const uploadDir = path.join(__dirname, 'uploads', 'reportes');
-
 const app = express();
-
 // Railway SIEMPRE usa este puerto
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
-
+const uploadDir = path.join(__dirname, 'uploads', 'reportes');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+
+app.use(cors());
+app.use(express.json());
 
 // Servir imágenes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
