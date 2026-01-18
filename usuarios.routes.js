@@ -307,7 +307,7 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
         // 4️⃣ Historial
         const accion = `Reporte agregado por el usuario. RUT: ${rut_usuario}`;
         await pool.query(
-            `INSERT INTO historial_de_acciones (Codigo_Usuario, Accion, Hora_Accion)
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
              VALUES (?, ?, NOW())`,
             [Codigo_Usuario, accion]
         );
