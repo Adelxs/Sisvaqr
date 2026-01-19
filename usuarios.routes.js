@@ -758,7 +758,7 @@ app.get('/usuario/:rut', async (req, res) => {
 
 
 // POST /auth/panel
-app.post('/auth/panel', async (req, res) => {
+/*app.post('/auth/panel', async (req, res) => {
     const { RUT, Contrasena } = req.body;
 
     if (!RUT || !Contrasena) {
@@ -792,8 +792,59 @@ app.post('/auth/panel', async (req, res) => {
       console.error(err);
       res.status(500).json({ ok: false, error: 'Error interno' });
     }
-  });
+  });*/
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
+
+     app.post('/auth/panel', async (req, res) => {
+
+    try {
+      const { RUT, Contrasena } = req.body;
+
+      if (!RUT || !Contrasena) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Faltan datos'
+        });
+      }
+
+      const [rows] = await pool.query(
+        'SELECT Codigo_Usuario, Contrasena, Tipo_de_Usuario FROM Usuarios WHERE RUT = ?',
+        [RUT]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Usuario no encontrado'
+        });
+      }
+
+      // ⚠️ NO bcrypt todavía (para aislar error)
+      if (rows[0].Contrasena !== Contrasena) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Contraseña incorrecta'
+        });
+      }
+
+      return res.json({
+        ok: true,
+        codigo: rows[0].Codigo_Usuario,
+        tipo: rows[0].Tipo_de_Usuario
+      });
+
+    } catch (err) {
+      console.error('ERROR REAL:', err);
+
+      // 🚨 RESPUESTA JSON FORZADA
+      return res.status(500).json({
+        ok: false,
+        error: 'Error interno controlado',
+        detalle: err.message
+      });
+    }
+
+  });
 };
 
 
