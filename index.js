@@ -32,14 +32,6 @@ app.get('/', (req, res) => {
   res.send('Servidor Express funcionando en Railway 🚀');
 });
 
-app.post('/auth/panel', (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Ruta DIRECTA index.js OK',
-    body: req.body
-  });
-});
-
 app.listen(PORT, () => {
   console.log(`API escuchando en puerto ${PORT}`);
 });
