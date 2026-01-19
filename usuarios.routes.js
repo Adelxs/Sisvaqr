@@ -796,17 +796,18 @@ app.get('/usuario/:rut', async (req, res) => {
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 
      app.post('/auth/panel', async (req, res) => {
-
     try {
       const { RUT, Contrasena } = req.body;
 
+      // Validación básica
       if (!RUT || !Contrasena) {
         return res.status(400).json({
           ok: false,
-          error: 'Faltan datos'
+          error: 'RUT y contraseña obligatorios'
         });
       }
 
+      // Consulta BD
       const [rows] = await pool.query(
         'SELECT Codigo_Usuario, Contrasena, Tipo_de_Usuario FROM Usuarios WHERE RUT = ?',
         [RUT]
@@ -815,36 +816,53 @@ app.get('/usuario/:rut', async (req, res) => {
       if (!rows || rows.length === 0) {
         return res.status(404).json({
           ok: false,
-          error: 'Usuario no encontrado'
+          error: 'Usuario no existe'
         });
       }
 
-      // ⚠️ NO bcrypt todavía (para aislar error)
-      if (rows[0].Contrasena !== Contrasena) {
+      const usuario = rows[0];
+
+      // Verificar hash válido bcrypt
+      if (!usuario.Contrasena || !usuario.Contrasena.startsWith('$2')) {
+        return res.status(500).json({
+          ok: false,
+          error: 'Contraseña no está hasheada en la base de datos'
+        });
+      }
+
+      // Comparar contraseña
+      const passwordOK = await bcrypt.compare(
+        Contrasena,
+        usuario.Contrasena
+      );
+
+      if (!passwordOK) {
         return res.status(401).json({
           ok: false,
           error: 'Contraseña incorrecta'
         });
       }
 
+      // Login exitoso
       return res.json({
         ok: true,
-        codigo: rows[0].Codigo_Usuario,
-        tipo: rows[0].Tipo_de_Usuario
+        codigo: usuario.Codigo_Usuario,
+        rut: RUT,
+        tipo: usuario.Tipo_de_Usuario
       });
 
     } catch (err) {
-      console.error('ERROR REAL:', err);
+      console.error('🔥 ERROR LOGIN:', err);
 
-      // 🚨 RESPUESTA JSON FORZADA
+      // NUNCA HTML
       return res.status(500).json({
         ok: false,
-        error: 'Error interno controlado',
+        error: 'Error interno del servidor',
         detalle: err.message
       });
     }
-
   });
+  
 };
 
 
