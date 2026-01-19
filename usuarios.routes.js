@@ -834,17 +834,6 @@ app.get('/usuario/:rut', async (req, res) => {
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 };
 
-module.exports = (app) => {
-
-  app.post('/auth/panel', (req, res) => {
-    res.json({
-      ok: true,
-      mensaje: 'Ruta auth/panel OK',
-      body: req.body
-    });
-  });
-
-};
 
 
 
