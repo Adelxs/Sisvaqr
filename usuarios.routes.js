@@ -758,7 +758,7 @@ app.get('/usuario/:rut', async (req, res) => {
 
 
 // POST /auth/panel
-app.post('/auth/panel', async (req, res) => {
+/*app.post('/auth/panel', async (req, res) => {
     const { RUT, Contrasena } = req.body;
 
     if (!RUT || !Contrasena) {
@@ -828,7 +828,7 @@ app.post('/auth/panel', async (req, res) => {
             error: 'Error interno del servidor'
         });
     }
-});
+});*/
 
 
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
