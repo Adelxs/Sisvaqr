@@ -8,7 +8,8 @@ const upload = require('./config/multer');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 
-
+const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
 
 
 function validarRUT(rut) {
@@ -343,67 +344,6 @@ app.post('/reportes', upload.array('imagenes', 5), async (req, res) => {
 
 
 // GET /reportes
-/*app.get('/reportes', async (req, res) => {
-    try {
-        const [rows] = await pool.query(`
-           SELECT 
-    r.ID_Reporte,
-    r.Codigo_Usuario,
-    r.Titulo,
-    r.Categoria,
-    r.Detalles,
-    r.Fecha,
-    r.Estado,
-    e.ID_Encargado,
-    e.Nombre AS Encargado,
-    i.Ruta_Imagen
-FROM Lista_de_Reportes r
-LEFT JOIN Reporte_Encargado re
-    ON r.ID_Reporte = re.ID_Reporte
-LEFT JOIN Encargados e
-    ON re.ID_Encargado = e.ID_Encargado
-LEFT JOIN Reporte_Imagenes i 
-    ON r.ID_Reporte = i.ID_Reporte
-ORDER BY r.Fecha DESC
-        `);
-
-        // 🔁 Agrupar imágenes por reporte
-        const reportesMap = {};
-
-        for (const row of rows) {
-            if (!reportesMap[row.ID_Reporte]) {
-                reportesMap[row.ID_Reporte] = {
-                    ID_Reporte: row.ID_Reporte,
-                    Codigo_Usuario: row.Codigo_Usuario,
-                    Titulo: row.Titulo,
-                    Categoria: row.Categoria,
-                    Detalles: row.Detalles,
-                    Fecha: row.Fecha,
-                    Estado: row.Estado,
-                    Encargado: row.Encargado,
-                    imagenes: []
-                };
-            }
-
-            if (row.Ruta_Imagen) {
-                reportesMap[row.ID_Reporte].imagenes.push(row.Ruta_Imagen);
-            }
-        }
-
-        res.json({
-            ok: true,
-            reportes: Object.values(reportesMap)
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            ok: false,
-            error: 'Error al obtener los reportes'
-        });
-    }
-});*/
-
 app.get('/reportes', async (req, res) => {
     try {
         const [rows] = await pool.query(`
@@ -580,10 +520,9 @@ app.get('/encargados', async (req, res) => {
 
 /*cambiar contraseña*/
 /* recuperar contraseña usando Gmail con contraseña de aplicación */
-const nodemailer = require('nodemailer');
-const { v4: uuidv4 } = require('uuid');
 
-module.exports = (app, pool) => {
+
+
   app.post('/usuarios/recuperar-password', async (req, res) => {
     const { correo } = req.body;
     if (!correo) return res.status(400).json({ mensaje: 'Correo requerido' });
@@ -642,16 +581,8 @@ module.exports = (app, pool) => {
       res.status(500).json({ mensaje: 'Error interno del servidor' });
     }
   });
-};
-
-
-
 
 /*actualizar contraseña*/ 
-
-const bcrypt = require('bcrypt');
-
-module.exports = (app, pool) => {
     app.post('/usuarios/reset-password', async (req, res) => {
         const { token, password } = req.body;
         if (!token || !password) return res.status(400).json({ mensaje: 'Datos incompletos' });
@@ -687,7 +618,7 @@ module.exports = (app, pool) => {
             res.status(500).json({ mensaje: 'Error interno del servidor' });
         }
     });
-};
+
 
 app.post('/usuarios/activar-2fa', async (req, res) => {
     const { RUT } = req.body;  // Recibe el usuario
@@ -758,41 +689,7 @@ app.get('/usuario/:rut', async (req, res) => {
 
 
 // POST /auth/panel
-/*app.post('/auth/panel', async (req, res) => {
-    const { RUT, Contrasena } = req.body;
 
-    if (!RUT || !Contrasena) {
-      return res.status(400).json({ ok: false, error: 'Datos incompletos' });
-    }
-
-    try {
-      const [rows] = await pool.query(
-        'SELECT Codigo_Usuario, Contrasena, Tipo_de_Usuario FROM Usuarios WHERE RUT = ?',
-        [RUT]
-      );
-
-      if (rows.length === 0) {
-        return res.status(404).json({ ok: false, error: 'Usuario no existe' });
-      }
-
-      const bcrypt = require('bcrypt');
-      const valido = await bcrypt.compare(Contrasena, rows[0].Contrasena);
-
-      if (!valido) {
-        return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
-      }
-
-      res.json({
-        ok: true,
-        codigo: rows[0].Codigo_Usuario,
-        tipo: rows[0].Tipo_de_Usuario
-      });
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ ok: false, error: 'Error interno' });
-    }
-  });*/
     // Aquí puedes agregar PUT, DELETE, GET por código si lo deseas
 
      app.post('/auth/panel', async (req, res) => {
@@ -852,7 +749,7 @@ app.get('/usuario/:rut', async (req, res) => {
       });
 
     } catch (err) {
-      console.error('🔥 ERROR LOGIN:', err);
+      console.error(' ERROR LOGIN:', err);
 
       // NUNCA HTML
       return res.status(500).json({
@@ -862,6 +759,76 @@ app.get('/usuario/:rut', async (req, res) => {
       });
     }
   });
+
+
+  //cambiar contraseña
+  app.post('/usuarios/cambiar-password', async (req, res) => {
+    try {
+      const {
+        Codigo_Usuario,
+        password_actual,
+        password_nueva
+      } = req.body;
+
+      if (!Codigo_Usuario || !password_actual || !password_nueva) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Datos incompletos'
+        });
+      }
+
+      // Obtener contraseña actual
+      const [rows] = await pool.query(
+        'SELECT Contrasena FROM Usuarios WHERE Codigo_Usuario = ?',
+        [Codigo_Usuario]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Usuario no encontrado'
+        });
+      }
+
+      const hashActual = rows[0].Contrasena;
+
+      // Verificar contraseña actual
+      const passwordOK = await bcrypt.compare(
+        password_actual,
+        hashActual
+      );
+
+      if (!passwordOK) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Contraseña actual incorrecta'
+        });
+      }
+
+      // Hashear nueva contraseña
+      const nuevoHash = await bcrypt.hash(password_nueva, 10);
+
+      // Actualizar
+      await pool.query(
+        'UPDATE Usuarios SET Contrasena = ? WHERE Codigo_Usuario = ?',
+        [nuevoHash, Codigo_Usuario]
+      );
+
+      return res.json({
+        ok: true,
+        mensaje: 'Contraseña actualizada correctamente'
+      });
+
+    } catch (err) {
+      console.error('🔥 ERROR CAMBIAR PASSWORD:', err);
+
+      return res.status(500).json({
+        ok: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  });
+
   
 };
 
