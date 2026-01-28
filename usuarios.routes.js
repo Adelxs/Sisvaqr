@@ -829,23 +829,27 @@ app.get('/usuario/:rut', async (req, res) => {
     }
   });
 
-  app.get('/usuario/:rut', async (req, res) => {
-    let rut = req.params.rut;
+ app.get('/usuario/:rut', async (req, res) => {
+    try {
+        let rut = req.params.rut;
 
-    // Solo quitamos los puntos. El guion lo mantenemos.
-    // También aplicamos .toUpperCase() por si la 'k' es minúscula.
-    rut = rut.replace(/\./g, '').trim().toUpperCase(); 
+        // Limpieza: quitamos puntos (por si acaso), espacios y pasamos a Mayúsculas
+        // IMPORTANTE: NO usamos .replace(/-/g, '') para mantener el guion
+        rut = rut.replace(/\./g, '').trim().toUpperCase();
 
-    const [rows] = await pool.query(
-        'SELECT * FROM Usuarios WHERE RUT = ?',
-        [rut]
-    );
+        const [rows] = await pool.query(
+            'SELECT * FROM Usuarios WHERE RUT = ?',
+            [rut]
+        );
 
-    if (rows.length === 0) {
-        return res.json({ ok: false, error: 'Usuario no encontrado' });
+        if (rows.length === 0) {
+            return res.json({ ok: false, error: 'Usuario no encontrado' });
+        }
+
+        res.json({ ok: true, usuario: rows[0] });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: 'Error en el servidor' });
     }
-
-    res.json({ ok: true, usuario: rows[0] });
 });
 
 
