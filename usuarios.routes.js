@@ -832,11 +832,11 @@ app.get('/usuario/:rut', async (req, res) => {
  app.get('/usuario/perfil/:codigo', async (req, res) => {
     
     try {
-        let rut = req.params.rut;
-        console.log("🔍 Buscando RUT:", `"${rut}"`); // Las comillas ayudan a ver si hay espacios ocultos
+        let rut = req.params.rut; // Las comillas ayudan a ver si hay espacios ocultos
         // Limpieza: quitamos puntos (por si acaso), espacios y pasamos a Mayúsculas
         // IMPORTANTE: NO usamos .replace(/-/g, '') para mantener el guion
         rut = rut.replace(/\./g, '').trim().toUpperCase();
+        
 
         const [rows] = await pool.query(
             'SELECT * FROM Usuarios WHERE RUT = ?',
@@ -850,6 +850,7 @@ app.get('/usuario/:rut', async (req, res) => {
         res.json({ ok: true, usuario: rows[0] });
     } catch (err) {
         res.status(500).json({ ok: false, error: 'Error en el servidor perfil' });
+        console.log("🔍 Buscando RUT:", `"${rut}"`);
     }
 });
 
