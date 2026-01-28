@@ -859,32 +859,39 @@ app.get('/usuario/rut/:rut', async (req, res) => {
 });
 
 // GET reportes por usuario
+// GET reportes por usuario desde la tabla correcta
 app.get('/reportes/usuario/:codigo', async (req, res) => {
     const { codigo } = req.params;
 
     try {
-        // Usamos TRIM para eliminar espacios accidentales en ambos lados
-        const query = `
-            SELECT * FROM Lista_de_Reportes 
-            WHERE TRIM(Codigo_Usuario) = TRIM(?) 
-            ORDER BY Fecha DESC
-        `;
-        
-        const [rows] = await pool.query(query, [codigo]);
+        console.log(`🔍 Buscando reportes para: |${codigo}|`);
 
-        if (rows.length === 0) {
-            // Agregamos un log para que veas en la consola de Railway qué buscó
-            console.log(`No se hallaron reportes para el código: |${codigo}|`);
-            return res.json({ ok: true, mensaje: 'No hay reportes', reportes: [] });
-        }
+        const [rows] = await pool.query(
+            'SELECT * FROM Lista_de_Reportes WHERE TRIM(Codigo_Usuario) = ? ORDER BY Fecha DESC',
+            [codigo.trim()]
+        );
 
-        res.json({ ok: true, reportes: rows });
+        res.json({ 
+            ok: true, 
+            reportes: rows 
+        });
+
     } catch (error) {
-        console.error('Error SQL:', error);
-        res.status(500).json({ ok: false, error: 'Error interno' });
+        console.error('🔥 Error en base de datos:', error);
+        res.status(500).json({ ok: false, error: 'Error interno del servidor' });
     }
 });
 
+// Endpoint para contar total de usuarios
+app.get('/usuarios/conteo', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT COUNT(*) as total FROM Usuarios');
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo:", error);
+        res.status(500).json({ ok: false, error: "Error al contar" });
+    }
+});
   
 };
 
