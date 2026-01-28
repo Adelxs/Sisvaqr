@@ -830,9 +830,10 @@ app.get('/usuario/:rut', async (req, res) => {
   });
 
  app.get('/usuario/:rut', async (req, res) => {
+    
     try {
         let rut = req.params.rut;
-
+        console.log("🔍 Buscando RUT:", `"${rut}"`); // Las comillas ayudan a ver si hay espacios ocultos
         // Limpieza: quitamos puntos (por si acaso), espacios y pasamos a Mayúsculas
         // IMPORTANTE: NO usamos .replace(/-/g, '') para mantener el guion
         rut = rut.replace(/\./g, '').trim().toUpperCase();
