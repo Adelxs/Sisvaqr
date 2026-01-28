@@ -832,7 +832,9 @@ app.get('/usuario/:rut', async (req, res) => {
   app.get('/usuario/:rut', async (req, res) => {
     let rut = req.params.rut;
 
-    rut = rut.replace(/\./g, '').replace(/-/g, '');
+    // Solo quitamos los puntos. El guion lo mantenemos.
+    // También aplicamos .toUpperCase() por si la 'k' es minúscula.
+    rut = rut.replace(/\./g, '').trim().toUpperCase(); 
 
     const [rows] = await pool.query(
         'SELECT * FROM Usuarios WHERE RUT = ?',
