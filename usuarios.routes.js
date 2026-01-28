@@ -865,7 +865,7 @@ app.get('/reportes/usuario/:codigo', async (req, res) => {
     try {
         // Usamos TRIM para eliminar espacios accidentales en ambos lados
         const query = `
-            SELECT * FROM Historial_de_Reportes 
+            SELECT * FROM Lista_de_Reportes 
             WHERE TRIM(Codigo_Usuario) = TRIM(?) 
             ORDER BY Fecha DESC
         `;
