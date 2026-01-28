@@ -863,22 +863,27 @@ app.get('/reportes/usuario/:codigo', async (req, res) => {
     const { codigo } = req.params;
 
     try {
-        const [rows] = await pool.query(
-            'SELECT * FROM Historial_de_Reportes WHERE Codigo_Usuario = ? ORDER BY Fecha DESC',
-            [codigo]
-        );
+        // Usamos TRIM para eliminar espacios accidentales en ambos lados
+        const query = `
+            SELECT * FROM Historial_de_Reportes 
+            WHERE TRIM(Codigo_Usuario) = TRIM(?) 
+            ORDER BY Fecha DESC
+        `;
+        
+        const [rows] = await pool.query(query, [codigo]);
 
         if (rows.length === 0) {
-            return res.json({ ok: true, mensaje: 'No hay reportes para este usuario', reportes: [] });
+            // Agregamos un log para que veas en la consola de Railway qué buscó
+            console.log(`No se hallaron reportes para el código: |${codigo}|`);
+            return res.json({ ok: true, mensaje: 'No hay reportes', reportes: [] });
         }
 
         res.json({ ok: true, reportes: rows });
     } catch (error) {
-        console.error('Error al obtener historial:', error);
-        res.status(500).json({ ok: false, error: 'Error en el servidor' });
+        console.error('Error SQL:', error);
+        res.status(500).json({ ok: false, error: 'Error interno' });
     }
 });
-
 
   
 };
