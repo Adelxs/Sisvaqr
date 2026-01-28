@@ -849,7 +849,7 @@ app.get('/usuario/:rut', async (req, res) => {
 
         res.json({ ok: true, usuario: rows[0] });
     } catch (err) {
-        res.status(500).json({ ok: false, error: 'Error en el servidor' });
+        res.status(500).json({ ok: false, error: 'Error en el servidor perfil' });
     }
 });
 
