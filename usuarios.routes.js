@@ -830,26 +830,22 @@ app.get('/usuario/:rut', async (req, res) => {
   });
 
   app.get('/usuario/:rut', async (req, res) => {
-    try {
-        const rut = req.params.rut;
+    let rut = req.params.rut;
 
-        const [rows] = await pool.query(
-            `SELECT Codigo_Usuario, RUT, Nombre_y_Apellido, Tipo_de_Usuario
-             FROM Usuarios WHERE RUT = ?`,
-            [rut]
-        );
+    rut = rut.replace(/\./g, '').replace(/-/g, '');
 
-        if (rows.length === 0) {
-            return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
-        }
+    const [rows] = await pool.query(
+        'SELECT * FROM Usuarios WHERE RUT = ?',
+        [rut]
+    );
 
-        res.json({ ok: true, usuario: rows[0] });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ ok: false, error: 'Error en servidor' });
+    if (rows.length === 0) {
+        return res.json({ ok: false, error: 'Usuario no encontrado' });
     }
+
+    res.json({ ok: true, usuario: rows[0] });
 });
+
 
 
   
