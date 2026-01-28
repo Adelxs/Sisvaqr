@@ -829,14 +829,18 @@ app.get('/usuario/:rut', async (req, res) => {
     }
   });
 
- app.get('/usuario/perfil/:codigo', async (req, res) => {
-    
+ // 1. Asegúrate de que aquí diga :rut
+app.get('/usuario/rut/:rut', async (req, res) => { 
     try {
-        let rut = req.params.rut; // Las comillas ayudan a ver si hay espacios ocultos
-        // Limpieza: quitamos puntos (por si acaso), espacios y pasamos a Mayúsculas
-        // IMPORTANTE: NO usamos .replace(/-/g, '') para mantener el guion
+        // 2. Aquí debes extraer el mismo nombre que pusiste arriba
+        let rut = req.params.rut; 
+
+        if (!rut) {
+            return res.status(400).json({ ok: false, error: "No se recibió el RUT" });
+        }
+
+        console.log("🔍 Buscando RUT:", `"${rut}"`);
         rut = rut.replace(/\./g, '').trim().toUpperCase();
-        
 
         const [rows] = await pool.query(
             'SELECT * FROM Usuarios WHERE RUT = ?',
@@ -849,11 +853,10 @@ app.get('/usuario/:rut', async (req, res) => {
 
         res.json({ ok: true, usuario: rows[0] });
     } catch (err) {
-        res.status(500).json({ ok: false, error: 'Error en el servidor perfil' });
-        console.log("🔍 Buscando RUT:", `"${rut}"`);
+        console.error(err);
+        res.status(500).json({ ok: false, error: 'Error en el servidor rut' });
     }
 });
-
 
 
   
