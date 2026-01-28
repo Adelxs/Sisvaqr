@@ -829,7 +829,7 @@ app.get('/usuario/:rut', async (req, res) => {
     }
   });
 
- app.get('/usuario/:rut', async (req, res) => {
+ app.get('/usuario/perfil/:codigo', async (req, res) => {
     
     try {
         let rut = req.params.rut;
