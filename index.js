@@ -34,5 +34,6 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`API escuchando en puerto ${PORT}`);
+  console.log("subido desde linux mint");
 });
 
