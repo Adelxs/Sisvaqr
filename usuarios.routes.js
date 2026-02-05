@@ -916,6 +916,21 @@ app.post('/registrar-escaneo', async (req, res) => {
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
+
+// Endpoint para contar solo los escaneos QR
+app.get('/historial/conteo-escaneos', async (req, res) => {
+    try {
+        // Contamos filas donde la acción contenga "Escaneo Qr"
+        const [rows] = await pool.query(
+            "SELECT COUNT(*) as total FROM Historial_de_Acciones WHERE Accion LIKE 'Escaneo Qr%'"
+        );
+        
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo de escaneos:", error);
+        res.status(500).json({ ok: false, error: "Error en el servidor" });
+    }
+});
   
 };
 
