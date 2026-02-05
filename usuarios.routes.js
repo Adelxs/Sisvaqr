@@ -931,6 +931,17 @@ app.get('/historial/conteo-escaneos', async (req, res) => {
         res.status(500).json({ ok: false, error: "Error en el servidor" });
     }
 });
+
+// Endpoint para contar todos los reportes de incidencias
+app.get('/reportes/conteo', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT COUNT(*) as total FROM Lista_de_Reportes");
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo de reportes:", error);
+        res.status(500).json({ ok: false, error: "Error en el servidor" });
+    }
+});
   
 };
 
