@@ -892,6 +892,30 @@ app.get('/usuarios/conteo', async (req, res) => {
         res.status(500).json({ ok: false, error: "Error al contar" });
     }
 });
+
+// POST /registrar-escaneo
+app.post('/registrar-escaneo', async (req, res) => {
+    const { Codigo_Usuario, ID_Reporte } = req.body;
+
+    if (!Codigo_Usuario || !ID_Reporte) {
+        return res.status(400).json({ error: 'Faltan datos (Codigo_Usuario o ID_Reporte)' });
+    }
+
+    try {
+        const hora = new Date();
+        // Insertamos en tu tabla existente 'Historial_de_Acciones'
+        await pool.query(
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+             VALUES (?, ?, ?)`,
+            [Codigo_Usuario, `Escaneo QR Reporte ID: ${ID_Reporte}`, hora]
+        );
+
+        res.json({ ok: true, mensaje: 'Escaneo registrado en el historial' });
+    } catch (error) {
+        console.error('Error al registrar escaneo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
   
 };
 
