@@ -907,7 +907,7 @@ app.post('/registrar-escaneo', async (req, res) => {
         await pool.query(
             `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
              VALUES (?, ?, ?)`,
-            [Codigo_Usuario, `Escaneo QR`, hora]
+            [Codigo_Usuario, `Escaneo QR: ${ID_Reporte}`, hora]
         );
 
         res.json({ ok: true, mensaje: 'Escaneo registrado en el historial' });
