@@ -740,6 +740,20 @@ app.get('/usuario/:rut', async (req, res) => {
         });
       }
 
+      // === NUEVA SENTENCIA SQL: REGISTRO DE ACCIÓN ===
+      // Registramos el inicio de sesión antes de enviar la respuesta exitosa
+      try {
+          await pool.query(
+            'INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion) VALUES (?, ?, NOW())',
+            [usuario.Codigo_Usuario, 'Inicio de sesión celular']
+          );
+      } catch (logError) {
+          // Usamos un try-catch interno para que, si falla el log, 
+          // el usuario igual pueda entrar a la app.
+          console.error('Error al registrar log de inicio:', logError);
+      }
+      // =============================================
+
       // Login exitoso
       return res.json({
         ok: true,
