@@ -658,11 +658,13 @@ app.get('/debug/uploads', (req, res) => {
 
 // Suponiendo que ya tienes un login y guardas el código o RUT del usuario
 app.get('/me', async (req, res) => {
-    const { rut } = req.query; // o desde un token en headers
+    const { rut } = req.query;
+    let accion = "Inicio desde celular";
 
     if (!rut) return res.status(400).json({ ok: false, error: "RUT requerido" });
 
     try {
+        // 1. Buscamos al usuario
         const [rows] = await pool.query(
             `SELECT Codigo_Usuario, RUT, Nombre_y_Apellido, Tipo_de_Usuario 
              FROM Usuarios 
@@ -670,12 +672,32 @@ app.get('/me', async (req, res) => {
             [rut]
         );
 
-        if (rows.length === 0) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+        }
 
-        res.json({ ok: true, usuario: rows[0] });
+        // EXTRAEMOS el código correctamente del primer resultado
+        const usuario = rows[0];
+        const codigo = usuario.Codigo_Usuario;
+
+        // 2. Registramos la acción (IMPORTANTE: Usar la variable 'codigo' que acabamos de extraer)
+        try {
+            await pool.query(
+                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Fecha_Accion)
+                 VALUES (?, ?, NOW())`,
+                [codigo, accion]
+            );
+        } catch (logErr) {
+            // Si falla el log, no queremos que el usuario no pueda entrar, 
+            // solo lo informamos en consola.
+            console.error("Error al registrar en historial:", logErr);
+        }
+
+        // 3. Respondemos al cliente
+        res.json({ ok: true, usuario: usuario });
 
     } catch (err) {
-        console.error(err);
+        console.error("Error crítico en /me:", err);
         res.status(500).json({ ok: false, error: "Error en servidor" });
     }
 });
