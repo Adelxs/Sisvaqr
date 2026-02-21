@@ -659,7 +659,7 @@ app.get('/debug/uploads', (req, res) => {
 // Suponiendo que ya tienes un login y guardas el código o RUT del usuario
 app.get('/me', async (req, res) => {
     const { rut } = req.query;
-    let accion = "Inicio desde celular";
+    let accion = "Historial registrado";
 
     if (!rut) return res.status(400).json({ ok: false, error: "RUT requerido" });
 
