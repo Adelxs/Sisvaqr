@@ -996,6 +996,17 @@ app.get('/historial/acciones', async (req, res) => {
         res.status(500).json({ ok: false, error: "Error interno" });
     }
 });
+
+// Endpoint para contar el total de acciones registradas
+app.get('/historial/conteo-total', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT COUNT(*) as total FROM Historial_de_Acciones');
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo de historial:", error);
+        res.status(500).json({ ok: false, error: "Error al contar" });
+    }
+});
   
 };
 
