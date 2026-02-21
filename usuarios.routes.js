@@ -740,6 +740,20 @@ app.get('/usuario/:rut', async (req, res) => {
         });
       }
 
+      // === NUEVA SENTENCIA SQL: REGISTRO DE ACCIÓN ===
+      // Registramos el inicio de sesión antes de enviar la respuesta exitosa
+      try {
+          await pool.query(
+            'INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion) VALUES (?, ?, NOW())',
+            [usuario.Codigo_Usuario, 'Inicio de sesión celular']
+          );
+      } catch (logError) {
+          // Usamos un try-catch interno para que, si falla el log, 
+          // el usuario igual pueda entrar a la app.
+          console.error('Error al registrar log de inicio:', logError);
+      }
+      // =============================================
+
       // Login exitoso
       return res.json({
         ok: true,
@@ -890,6 +904,56 @@ app.get('/usuarios/conteo', async (req, res) => {
     } catch (error) {
         console.error("Error en conteo:", error);
         res.status(500).json({ ok: false, error: "Error al contar" });
+    }
+});
+
+// POST /registrar-escaneo
+app.post('/registrar-escaneo', async (req, res) => {
+    const { Codigo_Usuario, ID_Reporte } = req.body;
+
+    if (!Codigo_Usuario || !ID_Reporte) {
+        return res.status(400).json({ error: 'Faltan datos (Codigo_Usuario o ID_Reporte)' });
+    }
+
+    try {
+        const hora = new Date();
+        // Insertamos en tu tabla existente 'Historial_de_Acciones'
+        await pool.query(
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+             VALUES (?, ?, ?)`,
+            [Codigo_Usuario, `Escaneo Qr: ${ID_Reporte}`, hora]
+        );
+
+        res.json({ ok: true, mensaje: 'Escaneo registrado en el historial' });
+    } catch (error) {
+        console.error('Error al registrar escaneo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// Endpoint para contar solo los escaneos QR
+app.get('/historial/conteo-escaneos', async (req, res) => {
+    try {
+        // Contamos filas donde la acción contenga "Escaneo Qr"
+        const [rows] = await pool.query(
+            "SELECT COUNT(*) as total FROM Historial_de_Acciones WHERE Accion LIKE 'Escaneo Qr%'"
+        );
+        
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo de escaneos:", error);
+        res.status(500).json({ ok: false, error: "Error en el servidor" });
+    }
+});
+
+// Endpoint para contar todos los reportes de incidencias
+app.get('/reportes/conteo', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT COUNT(*) as total FROM Lista_de_Reportes");
+        res.json({ ok: true, total: rows[0].total });
+    } catch (error) {
+        console.error("Error en conteo de reportes:", error);
+        res.status(500).json({ ok: false, error: "Error en el servidor" });
     }
 });
   
