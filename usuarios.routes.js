@@ -978,6 +978,24 @@ app.get('/reportes/conteo', async (req, res) => {
         res.status(500).json({ ok: false, error: "Error en el servidor" });
     }
 });
+
+// GET: Obtener todo el historial de acciones con nombre de usuario
+app.get('/historial/acciones', async (req, res) => {
+    try {
+        const query = `
+            SELECT h.ID_Accion, h.Accion, h.Hora_Accion, u.Nombre_y_Apellido 
+            FROM Historial_de_Acciones h
+            JOIN Usuarios u ON h.Codigo_Usuario = u.Codigo_Usuario
+            ORDER BY h.Hora_Accion DESC 
+            LIMIT 50
+        `;
+        const [rows] = await pool.query(query);
+        res.json({ ok: true, historial: rows });
+    } catch (error) {
+        console.error("Error al traer historial:", error);
+        res.status(500).json({ ok: false, error: "Error interno" });
+    }
+});
   
 };
 
