@@ -929,8 +929,48 @@ app.get('/usuarios/conteo', async (req, res) => {
     }
 });
 
-// POST /registrar-escaneo
+/*prueba nuevo endpoint*/
+
 app.post('/registrar-escaneo', async (req, res) => {
+    // Recibimos Codigo_Usuario desde el QR/App
+    const { Codigo_Usuario, ID_Reporte } = req.body;
+
+    if (!Codigo_Usuario || !ID_Reporte) {
+        return res.status(400).json({ error: 'Faltan datos' });
+    }
+
+    try {
+        const hora = new Date();
+
+        // 1. Buscamos el RUT asociado a ese Codigo_Usuario
+        const [usuarios] = await pool.query(
+            'SELECT RUT FROM Usuarios WHERE Codigo_Usuario = ?', 
+            [Codigo_Usuario]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const rutUsuario = usuarios[0].RUT;
+
+        // 2. Insertamos en el historial usando el RUT en la descripción de la acción
+        // O si tu tabla historial tiene una columna RUT, cámbiala aquí:
+        await pool.query(
+            `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion) 
+             VALUES (?, ?, ?)`,
+            [Codigo_Usuario, `Escaneo QR ID: ${ID_Reporte} | Realizado por RUT: ${rutUsuario}`, hora]
+        );
+
+        res.json({ ok: true, mensaje: 'Escaneo registrado con éxito por RUT' });
+    } catch (error) {
+        console.error('Error al registrar escaneo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// POST /registrar-escaneo
+/*app.post('/registrar-escaneo', async (req, res) => {
     const { Codigo_Usuario, ID_Reporte } = req.body;
 
     if (!Codigo_Usuario || !ID_Reporte) {
@@ -951,7 +991,7 @@ app.post('/registrar-escaneo', async (req, res) => {
         console.error('Error al registrar escaneo:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
-});
+});*/
 
 // Endpoint para contar solo los escaneos QR
 app.get('/historial/conteo-escaneos', async (req, res) => {
