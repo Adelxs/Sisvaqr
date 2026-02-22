@@ -933,9 +933,9 @@ app.get('/usuarios/conteo', async (req, res) => {
 
 app.post('/registrar-escaneo', async (req, res) => {
     // Recibimos Codigo_Usuario desde el QR/App
-    const { Codigo_Usuario, ID_Reporte } = req.body;
+    const { RUT, ID_Reporte } = req.body;
 
-    if (!Codigo_Usuario || !ID_Reporte) {
+    if (!RUT || !ID_Reporte) {
         return res.status(400).json({ error: 'Faltan datos' });
     }
 
@@ -944,8 +944,8 @@ app.post('/registrar-escaneo', async (req, res) => {
 
         // 1. Buscamos el RUT asociado a ese Codigo_Usuario
         const [usuarios] = await pool.query(
-            'SELECT RUT FROM Usuarios WHERE Codigo_Usuario = ?', 
-            [Codigo_Usuario]
+            'SELECT * FROM Usuarios WHERE RUT = ?', 
+            [RUT]
         );
 
         if (usuarios.length === 0) {
