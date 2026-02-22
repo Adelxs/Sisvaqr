@@ -931,7 +931,7 @@ app.get('/usuarios/conteo', async (req, res) => {
 
 /*prueba nuevo endpoint*/
 
-app.post('/registrar-escaneo', async (req, res) => {
+/*app.post('/registrar-escaneo', async (req, res) => {
     // Recibimos Codigo_Usuario desde el QR/App
     const { RUT, ID_Reporte } = req.body;
 
@@ -967,10 +967,10 @@ app.post('/registrar-escaneo', async (req, res) => {
         console.error('Error al registrar escaneo:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
-});
+});*/
 
 // POST /registrar-escaneo
-/*app.post('/registrar-escaneo', async (req, res) => {
+app.post('/registrar-escaneo', async (req, res) => {
     const { Codigo_Usuario, ID_Reporte } = req.body;
 
     if (!Codigo_Usuario || !ID_Reporte) {
@@ -991,7 +991,7 @@ app.post('/registrar-escaneo', async (req, res) => {
         console.error('Error al registrar escaneo:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
-});*/
+});
 
 // Endpoint para contar solo los escaneos QR
 app.get('/historial/conteo-escaneos', async (req, res) => {
