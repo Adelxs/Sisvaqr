@@ -1047,6 +1047,27 @@ app.get('/historial/conteo-total', async (req, res) => {
         res.status(500).json({ ok: false, error: "Error al contar" });
     }
 });
+
+// Endpoint para buscar usuario por RUT
+app.get('/usuario_por_rut/:rut', async (req, res) => {
+    const { rut } = req.params;
+
+    try {
+        const [usuarios] = await pool.query(
+            'SELECT RUT, Nombre_y_Apellido, Tipo_de_Usuario, Codigo_Usuario FROM Usuarios WHERE RUT = ?',
+            [rut]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+        }
+
+        res.json({ ok: true, usuario: usuarios[0] });
+    } catch (error) {
+        console.error('Error al buscar usuario por RUT:', error);
+        res.status(500).json({ ok: false, error: 'Error interno del servidor' });
+    }
+});
   
 };
 
