@@ -1054,7 +1054,7 @@ app.get('/usuario_por_rut/:rut', async (req, res) => {
 
     try {
         const [usuarios] = await pool.query(
-            'SELECT RUT, Nombre_y_Apellido, Tipo_de_Usuario, Codigo_Usuario FROM Usuarios WHERE RUT = ?',
+            'SELECT RUT, Nombre_y_Apellido, Tipo_de_Usuario, Codigo_Usuario, Correo_Electronico FROM Usuarios WHERE RUT = ?',
             [rut]
         );
 
