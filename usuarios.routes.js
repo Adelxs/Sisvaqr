@@ -657,7 +657,7 @@ app.get('/debug/uploads', (req, res) => {
 });
 
 // Suponiendo que ya tienes un login y guardas el código o RUT del usuario
-app.get('/me', async (req, res) => {
+/*app.get('/me', async (req, res) => {
     const { rut } = req.query;
     let accion = "Historial registrado";
 
@@ -694,6 +694,47 @@ app.get('/me', async (req, res) => {
         }
 
         // 3. Respondemos al cliente
+        res.json({ ok: true, usuario: usuario });
+
+    } catch (err) {
+        console.error("Error crítico en /me:", err);
+        res.status(500).json({ ok: false, error: "Error en servidor" });
+    }
+});*/
+
+app.get('/me', async (req, res) => {
+    const { rut, accion } = req.query; // Ahora extraemos 'accion' también
+    
+    // Si no mandas acción, usamos una por defecto
+    const textoAccion = accion || "Acceso al sistema"; 
+
+    if (!rut) return res.status(400).json({ ok: false, error: "RUT requerido" });
+
+    try {
+        const [rows] = await pool.query(
+            `SELECT Codigo_Usuario, RUT, Nombre_y_Apellido, Tipo_de_Usuario 
+             FROM Usuarios WHERE RUT = ?`,
+            [rut]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+        }
+
+        const usuario = rows[0];
+        const codigo = usuario.Codigo_Usuario;
+
+        // Registro en el historial con la acción dinámica
+        try {
+            await pool.query(
+                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Fecha_Accion)
+                 VALUES (?, ?, NOW())`,
+                [codigo, textoAccion]
+            );
+        } catch (logErr) {
+            console.error("Error al registrar en historial:", logErr);
+        }
+
         res.json({ ok: true, usuario: usuario });
 
     } catch (err) {
