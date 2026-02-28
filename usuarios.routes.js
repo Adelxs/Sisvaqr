@@ -907,7 +907,7 @@ app.get('/usuario/:rut', async (req, res) => {
   });
 
  // 1. Asegúrate de que aquí diga :rut
-app.get('/usuario/rut/:rut', async (req, res) => { 
+/*app.get('/usuario/rut/:rut', async (req, res) => { 
     try {
         // 2. Aquí debes extraer el mismo nombre que pusiste arriba
         let rut = req.params.rut; 
@@ -931,6 +931,51 @@ app.get('/usuario/rut/:rut', async (req, res) => {
         res.json({ ok: true, usuario: rows[0] });
     } catch (err) {
         console.error(err);
+        res.status(500).json({ ok: false, error: 'Error en el servidor rut' });
+    }
+});*/
+
+app.get('/usuario/rut/:rut', async (req, res) => { 
+    try {
+        let rut = req.params.rut; 
+
+        if (!rut) {
+            return res.status(400).json({ ok: false, error: "No se recibió el RUT" });
+        }
+
+        console.log("🔍 Buscando RUT:", `"${rut}"`);
+        // Limpiamos el RUT para que coincida con la DB
+        const rutLimpio = rut.replace(/\./g, '').trim().toUpperCase();
+
+        const [rows] = await pool.query(
+            'SELECT * FROM Usuarios WHERE RUT = ?',
+            [rutLimpio]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ ok: false, error: 'Usuario no encontrado' });
+        }
+
+        const usuario = rows[0];
+
+        // === REGISTRO EN EL HISTORIAL ===
+        try {
+            // Usamos 'Hora_Accion' que es el nombre correcto de tu columna
+            await pool.query(
+                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
+                 VALUES (?, ?, NOW())`,
+                [usuario.Codigo_Usuario, `Consulta de datos por RUT: ${rutLimpio}`]
+            );
+        } catch (logErr) {
+            // Si el log falla, solo avisamos en consola para no detener la respuesta
+            console.error("Error silencioso al registrar historial:", logErr.message);
+        }
+        // ================================
+
+        res.json({ ok: true, usuario: usuario });
+
+    } catch (err) {
+        console.error("Error crítico en /usuario/rut/:", err);
         res.status(500).json({ ok: false, error: 'Error en el servidor rut' });
     }
 });
