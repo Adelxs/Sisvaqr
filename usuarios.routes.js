@@ -727,7 +727,7 @@ app.get('/me', async (req, res) => {
         // Registro en el historial con la acción dinámica
         try {
             await pool.query(
-                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Fecha_Accion)
+                `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
                  VALUES (?, ?, NOW())`,
                 [codigo, textoAccion]
             );
