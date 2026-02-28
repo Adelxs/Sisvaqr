@@ -964,7 +964,7 @@ app.get('/usuario/rut/:rut', async (req, res) => {
             await pool.query(
                 `INSERT INTO Historial_de_Acciones (Codigo_Usuario, Accion, Hora_Accion)
                  VALUES (?, ?, NOW())`,
-                [usuario.Codigo_Usuario, `Consulta de datos por RUT: ${rutLimpio}`]
+                [usuario.Codigo_Usuario, `Consulta RUT: ${rutLimpio}`]
             );
         } catch (logErr) {
             // Si el log falla, solo avisamos en consola para no detener la respuesta
