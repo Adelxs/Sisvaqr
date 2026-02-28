@@ -706,7 +706,7 @@ app.get('/me', async (req, res) => {
     const { rut, accion } = req.query; // Ahora extraemos 'accion' también
     
     // Si no mandas acción, usamos una por defecto
-    const textoAccion = accion || "Acceso al sistema"; 
+    const textoAccion = accion || "Se genero QR"; 
 
     if (!rut) return res.status(400).json({ ok: false, error: "RUT requerido" });
 
